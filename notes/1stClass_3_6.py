@@ -95,7 +95,7 @@ git push -u origin main
 
 
 git add .
-git commit -m "your-comment"
+git commit -m "comment"
 git push
 
 

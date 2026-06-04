@@ -53,8 +53,8 @@ print (f"Hello, {name}! Your height is {height} and your age is {age}.") # this 
 #if-elif-else: multiple conditions
 
 
-age = 18
-if age >= 18:
+
+if age > 18:
     print("You are an adult.")   
 else:
     print("You are a minor.")
@@ -77,10 +77,10 @@ print(f"Your final grade is: {score}.") # this will print the final grade based 
 #and - both conditions must be true
 #or - at least one condition must be true
 
-user_age = 25
+
 has_license = True
 
-if user_age >= 18 and has_license:
+if age >= 18 and has_license:
     print("You can drive.") 
 else:
     print("You cannot drive.")
@@ -102,3 +102,41 @@ if weather == "sunny":
         print ("It's a hot sunny day.")
     else:
         print ("It's a nice sunny day.")
+
+
+#Loops 
+
+#for loop - iterates over a sequence (like a list, tuple, or string) and executes a block of code for each item in the sequence.    
+fruits = ["apple", "banana", "cherry"]
+for fruit in fruits:
+    print(fruit) # this will print each fruit in the list 'fruits'
+
+for i in range(5):
+    print(i) # this will print the numbers from 0 to 4
+for i in range(1, 6):
+    print(i) # this will print the numbers from 1 to 5
+for i in range(0, 10, 2):
+    print(i) # this will print the even numbers from 0 to 8
+
+#while loop - executes a block of code as long as a specified condition is true.
+count = 0
+while count < 5:
+    print(count) # this will print the current value of 'count'
+    count += 1 # this will increment the value of 'count' by 1 in each iteration of the loop
+
+#Loops control statements
+
+for i in range(10):
+    if i == 3:
+        continue
+    if i == 5:
+        break # this will exit the loop when i is equal to 5
+    print(i) # this will print the numbers from 0 to 4
+
+
+#Nested loops - a loop inside another loop
+
+for i in range(2):
+    for j in range(3):
+        print(f"i: {i}, j: {j}") # this will print the values of i and j for each iteration of the nested loops 
+    
