@@ -77,26 +77,26 @@ message = f"My name is {name} and I am {age} years old." # this will create a fo
 print (message) # this will print the value of the variable 'message'
 
 #Github 1st repo 
-echo "# Python-Bootcamp" >> README.md
-git init
-git add .
-git commit -m "first commit"
-git branch -M main
-git remote add origin https://github.com/jacquelinastanley/Python-Bootcamp.git
-git push -u origin main
+# echo "# Python-Bootcamp" >> README.md
+# git init
+# git add .
+# git commit -m "first commit"
+# git branch -M main
+# git remote add origin https://github.com/jacquelinastanley/Python-Bootcamp.git
+# git push -u origin main
 
 
-#Github update repo 
+# #Github update repo 
 
-git remote add origin https://github.com/jacquelinastanley/Python-Bootcamp.git
-git branch -M main
-git push -u origin main
+# git remote add origin https://github.com/jacquelinastanley/Python-Bootcamp.git
+# git branch -M main
+# git push -u origin main
 
 
 
-git add .
-git commit -m "comment"
-git push
+# git add .
+# git commit -m "comment"
+# git push
 
 
 #cd.. 

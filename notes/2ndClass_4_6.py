@@ -107,9 +107,6 @@ if weather == "sunny":
 #Loops 
 
 #for loop - iterates over a sequence (like a list, tuple, or string) and executes a block of code for each item in the sequence.    
-fruits = ["apple", "banana", "cherry"]
-for fruit in fruits:
-    print(fruit) # this will print each fruit in the list 'fruits'
 
 for i in range(5):
     print(i) # this will print the numbers from 0 to 4
