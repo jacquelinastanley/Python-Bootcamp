@@ -13,7 +13,7 @@ while True:
     #Actions
     
     print ("\n---Shopping List Manager----")
-    print("1) Add item")
+    print ("1) Add item")
     print ("2) View List")
     print ("3) Remove item")
     print ("q) Quit") 

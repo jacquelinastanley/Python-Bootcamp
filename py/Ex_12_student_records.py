@@ -12,7 +12,7 @@ students_records = {
          "age":20,
          "major":"Biology",
          "grades": [90,88,95]
-        },
+        }, # Add a new student "student_003" with name "Mike", age 18, major "Math", grades [82,79,91]
     "student_003": 
         {"name":"Mike",
          "age":18,
@@ -25,14 +25,14 @@ keys = students_records.keys()
 
 print (keys)
 
-# Add a new student "student_003" with name "Mike", age 18, major "Math", grades [82,79,91]
-
-
-
 
 #Update John's age to 20 
 
+students_records["student_001"]["age"] = 20
 
+print(students_records["student_001"])
 
 # Loop through the dictionary and print each students information in this format:"Student ID: [id], Name:[name], Major:[major]"
 
+for student_id, info in students_records.items():
+    print(f"Student ID: {student_id}, Name: {info['name']}, Major: {info['major']}")
