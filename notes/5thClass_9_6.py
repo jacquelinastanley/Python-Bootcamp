@@ -1,4 +1,4 @@
-#Database 
+#Database - Relational
 
 #extension is .db 
 # create table 
@@ -117,6 +117,7 @@ def display_menu():
 
     print ("\n" + "="*40)
     print ("---D A T A B A S E   M A N A G E R ----")
+    print ("="*40)
     print ("1) Create User")
     print ("2) View All User")
     print ("3) Create Post")
@@ -203,7 +204,7 @@ def main():
                 print("X Invalid user ID. Please enter a number.")
 
         elif choice == 'q':
-            print("\nGoodbye! 👋")
+            print("\nGoodbye! ")
             break
 
         else:
