@@ -100,3 +100,5 @@ print (message) # this will print the value of the variable 'message'
 
 
 #cd.. 
+
+#ctrl + c to exit 
