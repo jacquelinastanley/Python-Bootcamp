@@ -1,28 +1,18 @@
-#FastAPI 
-
-# endpoint bridge to connect backend and frontend 
-
-# Why - gaurds can validate the data from frontend to backend - prevent bot attack 
-
-# Swagger UI to test each endpoint 
-
-# HTTP Method 
-# .get() - GET REQUEST (READ)
-# .post() - POST REQUEST (CREATE)
-# .put() - PUT REQUEST (UPDATE)
-
-# cant import if it has number 
-
-# To test Fast API - uvicorn file_name:app
+#SQL connect to Mongo DB 
 
 from fastapi import FastAPI,HTTPException,status
+from contextlib import asynccontextmanager
 from pydantic import BaseModel, EmailStr
 from typing import List, Optional
 from datetime import datetime
-import sqlite3
-from sql_database import DatabaseManager
+from bson.objectid import ObjectId
+from mongo_database import DatabaseManager
+import os 
+from dotenv import load_dotenv
 
-app = FastAPI(title ="SQLite Database API", version="1.0.0")
+load_dotenv()
+
+app = FastAPI(title ="MongoDB Database API", version="1.0.0")
 
 #Pydantic models for request/response 
 
@@ -32,40 +22,55 @@ class UserCreate(BaseModel):
     age : int 
 
 class UserResponse(BaseModel): 
-    id : int 
+    id : str
     name : str 
     email : str 
     age : int 
-    created_at : str 
+    created_at : datetime
 
 class PostCreate(BaseModel): 
-    user_id : int 
+    user_id : str
     title : str
     content : str  
 
 class PostResponse(BaseModel): 
-    id : int 
-    user_id : int 
+    id : str 
+    user_id : str 
     title : str 
     content : str 
-    created_at: str 
+    created_at: datetime
 
 class PostResponseForUser(BaseModel): 
-    id : int 
+    id : str 
     title :str 
     content: str 
-    created_at : str
+    created_at : datetime
 
 #Initialize_database 
-db = DatabaseManager()
+try: 
+    db = DatabaseManager()
+except Exception as e: 
+    print (f'Failed to connect to MongoDB: {e}')
+    db = None 
+
+@app.on_event("startup")
+async def startup_event():
+    if db is None: 
+        raise Exception ("Failed to connect to MongoDB")
+    
+@app.on_event("shutdown")
+async def shutdown_event():
+    if db: 
+        db.close_connection()
 
 @app.get("/")
-async def root(): 
-    return {"message": "SQLite Database API", "version": "1.0.0"}
+async def root():
+    return {"message": " MongoDB Database API", "version": "1.0.0"}
+    """Create a new user"""
 
 @app.post("/users/", response_model=dict, status_code=status.HTTP_201_CREATED)
 async def create_user(user: UserCreate): 
-    """Create a new user"""
+    """Create a new User """
     try: 
         user_id = db.create_user(user.name, user.email, user.age)
         if user_id: 
@@ -81,6 +86,7 @@ async def create_user(user: UserCreate):
             detail=f"Internal server error:{str(e)}"
         )
 
+
 @app.get("/users/", response_model=List[UserResponse])
 async def get_all_users():
     """Get all users"""
@@ -88,11 +94,11 @@ async def get_all_users():
         users = db.get_all_users()
         return [
             UserResponse(
-                id=user[0],
-                name=user[1],
-                email=user[2],
-                age=user[3],
-                created_at=user[4], 
+                id=user['_id'],
+                name=user['name'],
+                email=user['email'],
+                age=user['age'],
+                created_at=user['created_at'], 
             )
             for user in users 
         ]
@@ -104,14 +110,19 @@ async def get_all_users():
             detail=f"Internal server error: {str(e)}"
         )
     
+
+    
 @app.get("/user/{user_id}", response_model=UserResponse) 
-async def get_user(user_id:int) : 
+async def get_user(user_id:str) : 
     """Get a specific user by ID"""
     try: 
-        with sqlite3.connect(db.db_name) as conn: 
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
-            user = cursor.fetchone()
+        if not ObjectId.is_valid(user_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid user ID format"
+            )
+        
+        user = db.users_collection.find_one({'_id': ObjectId(user_id)})
         
         if not user: 
             raise HTTPException(
@@ -120,11 +131,11 @@ async def get_user(user_id:int) :
             )
         
         return UserResponse(
-            id=user[0],
-            name=user[1],
-            email=user[2],
-            age=user[3],
-            created_at=user[4],  
+            id=str(user['_id']),
+            name=user['name'],
+            email=user['email'],
+            age=user['age'],
+            created_at=user['created_at'],  
         )
     except HTTPException:
         raise 
@@ -138,15 +149,20 @@ async def get_user(user_id:int) :
 async def create_post(post: PostCreate):
     """Create a new post"""
     try: 
+        if not ObjectId.is_valid(post.user_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid user ID format"
+            )
+        
         #Check if user exists 
-        with sqlite3.connect(db.db_name) as conn: 
-            cursor = conn.cursor()
-            cursor.execute("SELECT id FROM users WHERE id = ?", (post.user_id,)) 
-            if not cursor.fetchone():
+        user = db.users_collection.find_one({"_id": ObjectId(post.user_id)})
+        if not user :
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="User not found"
                 )
+        
         post_id = db.create_post(post.user_id, post.title, post.content)
         if post_id: 
             return {"message": "Post created successfully", "post_id":post_id} 
@@ -155,6 +171,7 @@ async def create_post(post: PostCreate):
                 status_code=status.HTTP_400_BAD_REQUEST, 
                 detail="Failed to create post"
             )   
+        
     except HTTPException: 
         raise 
     except Exception as e: 
@@ -164,26 +181,30 @@ async def create_post(post: PostCreate):
         )
     
 @app.get("/users/{user_id}/posts", response_model=List[PostResponseForUser])
-async def get_user_post(user_id: int):
+async def get_user_posts(user_id: str):
     """Get posts by a specific user"""
     try: 
-        #Check if user exists
-        with sqlite3.connect(db.db_name) as conn: 
-            cursor = conn.cursor()
-            cursor.execute("SELECT id FROM users WHERE id = ?", (user_id,))
-            if not cursor.fetchone(): 
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="User not found"
+        if not ObjectId.is_valid(user_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid user ID format"
                 )
+        
+        #Check if user exist 
+        user = db.users_collection.find_one({"_id": ObjectId(user_id)})
+        if not user: 
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
             
-        posts = db.get_user_post(user_id)
+        posts = db.get_user_posts(user_id)
         return [
             PostResponseForUser(
-                id=post[0],
-                title=post[1],
-                content=post[2],
-                created_at=post[3], 
+                id=post['_id'],
+                title=post['title'],
+                content=post['content'],
+                created_at=post['created_at'], 
             )
             for post in posts
         ]
@@ -199,18 +220,20 @@ async def get_user_post(user_id: int):
 async def get_all_posts(): 
     """Get all posts"""
     try: 
-        with sqlite3.connect(db.db_name) as conn: 
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM posts ORDER BY created_at DESC")
-            posts = cursor.fetchall()
+        posts = list(db.posts_collection.find().sort("created_at", -1))
+
+        #Convert ObjectID to string for response 
+        for post in posts: 
+            post ['_id'] = str (post['_id'])
+            post ['user_id'] = str(post['user_id'])
         
         return [
             PostResponse(
-                id=post[0],
-                user_id=post[1],
-                title=post[2],
-                content=post[3],
-                created_at=post[4]
+                id=post['_id'],
+                user_id=post['user_id'],
+                title=post['title'],
+                content=post['content'],
+                created_at=post['created_at']
             )
             for post in posts
         ]
@@ -219,20 +242,26 @@ async def get_all_posts():
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Internal server error: {str(e)}"
         )
-    
+
 @app.delete("/users/{user_id}",response_model=dict)
-async def delete_user(user_id: int): 
+async def delete_user(user_id: str): 
     """Delete a user and all their posts"""
-    try: 
+    try:
+        if not ObjectId.is_valid(user_id):
+            raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid user ID format"
+            )
+        
         #Check if user exists 
-        with sqlite3.connect(db.db_name) as conn: 
-            cursor = conn.cursor()
-            cursor.execute("SELECT id FROM users WHERE id =?", (user_id,))
-            if not cursor.fetchone(): 
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="User not found"
-                )
+
+        user = db.users_collection.find_one({"_id": ObjectId(user_id)})
+        if not user: 
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+
         success = db.delete_user(user_id)
         if success: 
             return {"message": "User deleted successfully"}
@@ -250,18 +279,22 @@ async def delete_user(user_id: int):
         )
 
 @app.delete("/posts/{post_id}", response_model=dict)
-async def delete_post(post_id: int):
+async def delete_post(post_id:str):
     """Delete a specific post"""
     try:
-        with sqlite3.connect(db.db_name) as conn: 
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM posts WHERE id =?", (post_id,))
+        if not ObjectId.is_valid(post_id): 
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid post ID format"
+            )
+        
+        result = db.posts_collection.delete_one({"_id": ObjectId(post_id)})
 
-            if cursor.rowcount == 0: 
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Post not found"
-                )
+        if result.deleted_count == 0: 
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Post not found"
+            )
 
         return {"messages": "Post deleted successfully"}
     except HTTPException: 
@@ -272,6 +305,7 @@ async def delete_post(post_id: int):
             detail=f"Internal server error: {str(e)}"
         )
 
-if __name__ == "__main__":
+if __name__ == "__main__": 
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port =8001)
+    
